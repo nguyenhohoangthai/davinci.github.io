@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mật Mã DaVinci Online - Board Game Suy Luận</title>
+    <!-- Google Fonts with full Vietnamese subset support -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- BACKGROUND DECORATIONS -->
+        <div class="bg-glow bg-glow-1"></div>
+        <div class="bg-glow bg-glow-2"></div>
+
+        <!-- HEADER / NAVIGATION -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-key text-gold"></i>
+                <span class="logo-text">MẬT MÃ <span class="text-gold">DAVINCI</span></span>
+                <span class="badge-online">ONLINE</span>
+            </div>
+            <div id="network-info" class="network-info">
+                <i class="fa-solid fa-network-wired"></i> Radmin VPN / LAN Ready
+            </div>
+        </header>
+
+        <!-- 1. SCREEN: LOBBY -->
+        <section id="screen-lobby" class="screen-section active">
+            <div class="lobby-grid">
+                <!-- HERO CARD -->
+                <div class="glass-card hero-card">
+                    <div class="hero-icon">
+                        <i class="fa-solid fa-user-secret"></i>
+                    </div>
+                    <h2>Đấu Trí Mật Mã</h2>
+                    <p>Trò chơi suy luận logic huyền thoại. Đoán số, tích lũy <strong>Xu</strong> và đánh bại đối thủ!</p>
+                    
+                    <div class="rules-summary-box">
+                        <h4><i class="fa-solid fa-star text-gold"></i> Luật Chơi Nâng Cao:</h4>
+                        <ul>
+                            <li><i class="fa-solid fa-coins text-gold"></i> Đoán <b>ĐÚNG 1 lá</b> nhận ngay <b>+1 Xu (+1 Điểm)</b>.</li>
+                            <li><i class="fa-solid fa-skull"></i> Khi <b>1 người lật hết mật mã</b>, game KẾT THÚC. Người có <b>nhiều Xu nhất</b> sẽ THẮNG!</li>
+                            <li><i class="fa-solid fa-mask"></i> <b>Lá bài Dash (-):</b> Được tự do chọn vị trí đặt bài để bẫy đối thủ!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- FORM CARD -->
+                <div class="glass-card form-card">
+                    <div class="form-group">
+                        <label for="input-player-name"><i class="fa-solid fa-user"></i> Tên người chơi của bạn:</label>
+                        <input type="text" id="input-player-name" placeholder="Nhập biệt danh..." maxlength="15" autofocus>
+                    </div>
+
+                    <hr class="divider">
+
+                    <!-- CREATE ROOM -->
+                    <div class="action-box">
+                        <h3><i class="fa-solid fa-plus-circle text-gold"></i> Tạo Phòng Mới</h3>
+                        <div class="room-setup-row">
+                            <div class="select-group">
+                                <label for="select-max-players">Số người chơi:</label>
+                                <select id="select-max-players">
+                                    <option value="2">2 Người chơi</option>
+                                    <option value="3">3 Người chơi</option>
+                                    <option value="4" selected>4 Người chơi</option>
+                                </select>
+                            </div>
+                            <button id="btn-create-room" class="btn btn-primary">
+                                <i class="fa-solid fa-bolt"></i> Tạo Phòng
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="or-separator">Hoặc</div>
+
+                    <!-- JOIN BY CODE -->
+                    <div class="action-box">
+                        <h3><i class="fa-solid fa-right-to-bracket text-gold"></i> Tham Gia Bằng Mã Phòng</h3>
+                        <div class="join-code-row">
+                            <input type="text" id="input-room-code" placeholder="Nhập Mã (VD: A7B9)" maxlength="4" style="text-transform: uppercase;">
+                            <button id="btn-join-room" class="btn btn-secondary">
+                                <i class="fa-solid fa-arrow-right"></i> Vào Phòng
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PUBLIC ROOMS LIST -->
+                    <div class="public-rooms-container">
+                        <h4><i class="fa-solid fa-list-ul"></i> Phòng Đang Chờ (<span id="public-rooms-count">0</span>)</h4>
+                        <div id="public-rooms-list" class="rooms-scroll-list">
+                            <div class="empty-list-text">Đang tìm phòng công khai...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. SCREEN: ROOM WAITING LOBBY -->
+        <section id="screen-room-waiting" class="screen-section">
+            <div class="glass-card room-lobby-card">
+                <div class="room-header-bar">
+                    <div class="room-code-badge">
+                        <span>MÃ PHÒNG:</span>
+                        <strong id="display-room-code">----</strong>
+                        <button id="btn-copy-code" title="Sao chép mã phòng" class="btn-icon">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="radmin-note">
+                        <i class="fa-solid fa-circle-info text-gold"></i>
+                        Người chơi khác hãy truy cập: <code>http://&lt;IP-Radmin-VPN-Của-Bạn&gt;:3000</code>
+                    </div>
+                </div>
+
+                <h3>Danh Sách Người Chơi Trong Phòng</h3>
+                <div id="room-players-grid" class="players-grid">
+                    <!-- Dynamic player cards -->
+                </div>
+
+                <div class="room-actions-bar">
+                    <button id="btn-leave-room" class="btn btn-danger-ghost">
+                        <i class="fa-solid fa-right-from-bracket"></i> Rời Phòng
+                    </button>
+                    <button id="btn-toggle-ready" class="btn btn-secondary">
+                        <i class="fa-solid fa-check"></i> <span id="ready-btn-text">Sẵn Sàng</span>
+                    </button>
+                    <button id="btn-add-bot" class="btn btn-warning" style="display: none;">
+                        <i class="fa-solid fa-robot"></i> Thêm Bot (Máy)
+                    </button>
+                    <button id="btn-start-game" class="btn btn-primary btn-glow" style="display: none;">
+                        <i class="fa-solid fa-play"></i> BẮT ĐẦU GAME
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. SCREEN: POKER-STYLE 4-CORNER GAME TABLE -->
+        <section id="screen-game-board" class="screen-section">
+            <div class="poker-table-container">
+
+                <!-- TOP SEAT (Opponent 2 / Top) -->
+                <div id="seat-top" class="table-seat seat-top">
+                    <div class="empty-seat-text">Vị trí trống</div>
+                </div>
+
+                <!-- LEFT SEAT (Opponent 1 / Left) -->
+                <div id="seat-left" class="table-seat seat-left">
+                    <div class="empty-seat-text">Vị trí trống</div>
+                </div>
+
+                <!-- RIGHT SEAT (Opponent 3 / Right) -->
+                <div id="seat-right" class="table-seat seat-right">
+                    <div class="empty-seat-text">Vị trí trống</div>
+                </div>
+
+                <!-- CENTER OF THE TABLE -->
+                <div class="table-center">
+                    <button id="btn-in-game-leave" class="btn btn-sm btn-danger-ghost btn-leave-table" title="Rời phòng">
+                        <i class="fa-solid fa-right-from-bracket"></i> Thoát
+                    </button>
+
+                    <!-- GUESS ANNOUNCEMENT BANNER FOR ALL PLAYERS -->
+                    <div id="guess-announcement-banner" class="guess-announcement-banner">
+                        <div id="announcement-content" class="announcement-content"></div>
+                    </div>
+
+                    <!-- TABLE CENTER POOL OF FACE-DOWN TILES -->
+                    <div id="table-pool-container" class="table-pool-container">
+                        <div class="pool-header">
+                            <div class="pool-pill black-pool-pill" id="pill-black-count">
+                                <span class="pool-color-dot black-dot"></span> Đen: <strong id="deck-black-count">13</strong>
+                            </div>
+                            <span class="pool-title"><i class="fa-solid fa-layer-group text-gold"></i> BÀN BỐC BÀI</span>
+                            <div class="pool-pill white-pool-pill" id="pill-white-count">
+                                <span class="pool-color-dot white-dot"></span> Trắng: <strong id="deck-white-count">13</strong>
+                            </div>
+                        </div>
+                        <div id="table-pool-tiles" class="table-pool-tiles">
+                            <!-- Dynamic face-down tiles on table -->
+                        </div>
+                    </div>
+
+                    <!-- PREPARATION PHASE BANNER -->
+                    <div id="prep-phase-banner" class="prep-phase-banner" style="display: none;">
+                        <div class="prep-phase-content">
+                            <i class="fa-solid fa-shield-halved text-gold"></i>
+                            <span>CHUẨN BỊ MẬT MÃ BÍ MẬT (<strong id="prep-countdown">10</strong>s)</span>
+                            <button id="btn-finish-prep" class="btn btn-sm btn-primary">Xong Ngay</button>
+                        </div>
+                        <p class="prep-hint">Các lá bài số đã tự động sắp xếp tăng dần. Bạn có thể bấm nút chuyển trên lá Dash (-) nếu muốn đổi vị trí.</p>
+                    </div>
+
+                    <!-- TURN INDICATOR BANNER -->
+                    <div id="turn-banner" class="turn-banner pulse-glow">
+                        <i class="fa-solid fa-hourglass-half text-gold"></i>
+                        <span id="turn-banner-text">Đang chờ bắt đầu...</span>
+                    </div>
+
+                    <!-- DRAW ACTION BUTTON (Fallback / Quick draw) -->
+                    <div id="draw-action-box" class="draw-action-box" style="display: none;">
+                        <span class="draw-hint-text"><i class="fa-solid fa-hand-pointer text-gold"></i> Nhấp vào 1 quân bài trên bàn để bốc</span>
+                    </div>
+                </div>
+
+                <!-- BOTTOM SEAT (SELF / MY RACK) -->
+                <div id="seat-bottom" class="table-seat seat-bottom">
+                    <div class="my-rack-header">
+                        <div class="my-player-info">
+                            <i class="fa-solid fa-user-ninja text-gold"></i>
+                            <span class="my-name" id="my-player-name">Bạn</span>
+                            <div class="coin-badge"><i class="fa-solid fa-coins text-gold"></i> <span id="my-coins-count">0</span> Xu</div>
+                        </div>
+                        <div class="my-rack-title">
+                            BÀI CỦA BẠN (Xếp tăng dần từ Trái sang Phải)
+                        </div>
+                    </div>
+                    
+                    <div class="my-rack-body">
+                        <div id="my-tiles-rack" class="tiles-rack">
+                            <!-- My tiles rendered dynamically -->
+                        </div>
+
+                        <!-- PROMINENT DRAWN TILE SLOT IN PLAYER RACK -->
+                        <div id="my-drawn-tile-slot" class="drawn-tile-slot" style="display: none;">
+                            <div class="drawn-tile-label"><i class="fa-solid fa-sparkles text-gold"></i> LÁ VỪA RÚT</div>
+                            <div id="my-drawn-tile-card-container">
+                                <!-- Card rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <!-- OVERLAY: SHUFFLING & DEALING ANIMATION -->
+    <div id="shuffling-overlay" class="shuffling-overlay">
+        <div class="shuffling-content">
+            <div class="shuffling-cards-animation">
+                <div class="shuffle-card card-a"></div>
+                <div class="shuffle-card card-b"></div>
+                <div class="shuffle-card card-c"></div>
+            </div>
+            <h2 class="text-gold">ĐANG XÀO BÀI & CHIA BÀI...</h2>
+            <p>Hãy chuẩn bị tinh thần cho trận đấu trí nảy lửa!</p>
+        </div>
+    </div>
+
+    <!-- MODAL: DRAWN TILE ANNOUNCEMENT REVEAL -->
+    <div id="modal-drawn-reveal" class="modal-backdrop">
+        <div class="modal-content glass-card reveal-drawn-modal">
+            <div class="modal-header center">
+                <i class="fa-solid fa-hand-holding-hand text-gold" style="font-size: 2.5rem; margin-bottom: 0.5rem;"></i>
+                <h3 class="text-gold">BẠN VỪA RÚT ĐƯỢC LÁ BÀI!</h3>
+            </div>
+            <div class="modal-body center">
+                <p>Hãy giữ bí mật lá bài này! Nếu bạn đoán sai, lá bài này sẽ bị lật ngửa.</p>
+                <div id="drawn-tile-big-display" class="drawn-tile-big-display">
+                    <!-- Big 3D Tile Card -->
+                </div>
+            </div>
+            <div class="modal-footer center">
+                <button id="btn-close-drawn-reveal" class="btn btn-primary btn-lg btn-glow">
+                    <i class="fa-solid fa-bullseye"></i> ĐÃ RÕ - ĐẾN LƯỢT ĐOÁN BÀI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: WRONG GUESS ANNOUNCEMENT -->
+    <div id="modal-wrong-guess" class="modal-backdrop">
+        <div class="modal-content glass-card wrong-guess-modal">
+            <div class="modal-header center">
+                <i class="fa-solid fa-circle-xmark text-danger" style="font-size: 3.5rem; margin-bottom: 0.5rem;"></i>
+                <h2 style="color: var(--danger);">BẠN ĐÃ ĐOÁN SAI!</h2>
+            </div>
+            <div class="modal-body center">
+                <p id="wrong-guess-desc">Rất tiếc! Câu trả lời của bạn không chính xác.</p>
+                <div id="wrong-guess-revealed-card-container" class="drawn-tile-big-display">
+                    <!-- Revealed penalty tile -->
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Lá bài của bạn đã bị phạt lật ngửa và lượt chơi được chuyển sang người tiếp theo.</p>
+            </div>
+            <div class="modal-footer center">
+                <button id="btn-close-wrong-guess" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-check"></i> ĐÃ RÕ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING GUESS DOCK (NON-BLOCKING, DOES NOT OBSCURE OPPONENTS' CARDS) -->
+    <div id="guess-dock" class="guess-dock">
+        <div class="guess-dock-inner glass-card">
+            <div class="guess-dock-header">
+                <div class="guess-dock-target-info">
+                    <i class="fa-solid fa-bullseye text-gold"></i>
+                    <span id="guess-dock-desc">Đang đoán lá số <strong>#1</strong> của <strong>Player</strong></span>
+                    <span id="guess-dock-color-badge" class="target-color-badge">Trắng</span>
+                </div>
+                <button id="btn-close-guess-dock" class="btn-icon btn-close-dock" title="Đóng">&times;</button>
+            </div>
+            
+            <div class="guess-dock-body">
+                <div class="guess-dock-numbers">
+                    <button class="btn-num-select" data-val="0">0</button>
+                    <button class="btn-num-select" data-val="1">1</button>
+                    <button class="btn-num-select" data-val="2">2</button>
+                    <button class="btn-num-select" data-val="3">3</button>
+                    <button class="btn-num-select" data-val="4">4</button>
+                    <button class="btn-num-select" data-val="5">5</button>
+                    <button class="btn-num-select" data-val="6">6</button>
+                    <button class="btn-num-select" data-val="7">7</button>
+                    <button class="btn-num-select" data-val="8">8</button>
+                    <button class="btn-num-select" data-val="9">9</button>
+                    <button class="btn-num-select" data-val="10">10</button>
+                    <button class="btn-num-select" data-val="11">11</button>
+                    <button class="btn-num-select btn-joker-select" data-val="-">Dash (-)</button>
+                </div>
+                
+                <div class="guess-dock-actions">
+                    <button id="btn-cancel-guess" class="btn btn-secondary btn-sm">Hủy</button>
+                    <button id="btn-confirm-guess" class="btn btn-primary btn-sm" disabled>
+                        <i class="fa-solid fa-check"></i> Xác Nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ACTION CHOICE AFTER CORRECT GUESS -->
+    <div id="modal-action-choice" class="modal-backdrop">
+        <div class="modal-content glass-card choice-modal">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-trophy text-gold"></i> ĐOÁN ĐÚNG RỒI! (+1 XU)</h3>
+            </div>
+            <div class="modal-body">
+                <p>Bạn nhận được <strong>+1 Xu</strong>. Bạn muốn tiếp tục thừa thắng xông lên hay dừng lại bảo toàn bí mật?</p>
+                <div class="choice-buttons">
+                    <button id="btn-choice-again" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-bullseye"></i> ĐOÁN TIẾP (+1 Xu nữa nếu đúng)
+                    </button>
+                    <button id="btn-choice-pass" class="btn btn-secondary btn-lg">
+                        <i class="fa-solid fa-shield"></i> DỪNG LƯỢT (Giữ an toàn bài)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GAME OVER & RANKING -->
+    <div id="modal-game-over" class="modal-backdrop">
+        <div class="modal-content glass-card endgame-modal">
+            <div class="modal-header center">
+                <div class="trophy-icon"><i class="fa-solid fa-crown text-gold"></i></div>
+                <h2 class="text-gold">KẾT THÚC TRÒ CHƠI!</h2>
+                <p id="game-over-reason">Một người chơi đã bị lật toàn bộ mật mã!</p>
+            </div>
+            <div class="modal-body">
+                <h4><i class="fa-solid fa-ranking-star"></i> BẢNG XẾP HẠNG TỔNG XU:</h4>
+                <div id="ranking-list" class="ranking-list">
+                    <!-- Rendered ranking rows -->
+                </div>
+            </div>
+            <div class="modal-footer center">
+                <button id="btn-restart-game" class="btn btn-primary btn-lg btn-glow" style="display: none;">
+                    <i class="fa-solid fa-rotate-right"></i> Về Phòng Chờ & Chơi Tiếp
+                </button>
+                <button id="btn-endgame-leave" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-house"></i> Về Sảnh Chính
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO Library -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

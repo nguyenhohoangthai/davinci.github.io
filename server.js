@@ -57,7 +57,7 @@ function tileComparator(a, b) {
 function autoInsertNonJoker(hand, newTile) {
     let inserted = false;
     const newHand = [];
-
+    
     for (let i = 0; i < hand.length; i++) {
         const tile = hand[i];
         if (!inserted && !tile.isJoker) {
@@ -81,7 +81,7 @@ function checkPlayerEliminated(player) {
 
 function getSanitizedRoomState(room, clientSocketId) {
     const isGameOver = room.state === 'game_over';
-
+    
     const sanitizedPlayers = room.players.map(p => {
         const isSelf = p.socketId === clientSocketId;
         const sanitizedHand = p.hand.map(tile => {
@@ -328,7 +328,7 @@ io.on('connection', (socket) => {
         room.draftTurnIndex = 0;
         room.drawnTile = null;
         room.pendingJokers = {};
-
+        
         logActivity(room, `🃏 Đang xào bài và trải 26 quân bài úp lên bàn cờ...`);
         broadcastRoomState(room);
 
@@ -929,7 +929,7 @@ io.on('connection', (socket) => {
 
         logActivity(room, `=================================`);
         logActivity(room, `🏆 KẾT THÚC GAME (${reason}) 🏆`);
-
+        
         const sorted = [...room.players].sort((a, b) => b.coins - a.coins);
         logActivity(room, `🥇 CHIẾN THẮNG: ${sorted[0].name} với ${sorted[0].coins} Xu!`);
         logActivity(room, `=================================`);
@@ -941,7 +941,7 @@ io.on('connection', (socket) => {
     socket.on('restart_game', () => {
         const room = rooms[socket.roomId];
         if (!room || room.hostSocketId !== socket.id) return;
-
+        
         room.state = 'lobby';
         room.players.forEach(p => {
             p.ready = (p.socketId === room.hostSocketId);
@@ -962,7 +962,7 @@ io.on('connection', (socket) => {
 
         const room = rooms[code];
         const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
-
+        
         if (playerIndex !== -1) {
             const disconnectedPlayer = room.players[playerIndex];
             logActivity(room, `⚠️ ${disconnectedPlayer.name} đã rời khỏi phòng.`);

@@ -3,10 +3,12 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -998,19 +1000,25 @@ io.on('connection', (socket) => {
 });
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const publicIndex = path.join(__dirname, 'public', 'index.html');
+    const rootIndex = path.join(__dirname, 'index.html');
+    if (fs.existsSync(publicIndex)) {
+        return res.sendFile(publicIndex);
+    } else if (fs.existsSync(rootIndex)) {
+        return res.sendFile(rootIndex);
+    } else {
+        return res.status(404).send('Không tìm thấy file index.html');
+    }
 });
 
 const PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    server.listen(PORT, () => {
-        console.log(`=================================================`);
-        console.log(`  MẬT MÃ DAVINCI ONLINE SERVER đang chạy!`);
-        console.log(`  Local URL:  http://localhost:${PORT}`);
-        console.log(`  LAN / Radmin VPN: http://<IP-Radmin-Của-Bạn>:${PORT}`);
-        console.log(`=================================================`);
-    });
-}
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`=================================================`);
+    console.log(`  MẬT MÃ DAVINCI ONLINE SERVER đang chạy!`);
+    console.log(`  Port:       ${PORT}`);
+    console.log(`  Local URL:  http://localhost:${PORT}`);
+    console.log(`=================================================`);
+});
 
-module.exports = app;
+module.exports = server;
 

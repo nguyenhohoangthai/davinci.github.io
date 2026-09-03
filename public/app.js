@@ -1,5 +1,10 @@
 // Socket.IO Client Connection
-const socket = io();
+const socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 15,
+    reconnectionDelay: 1000
+});
 
 // DEBUG: theo dõi kết nối socket - nếu bị "disconnect" giữa ván, bạn sẽ
 // bị server xóa khỏi phòng và giao diện sẽ đứng hình như bị khoá.

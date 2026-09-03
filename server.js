@@ -15,7 +15,10 @@ const io = new Server(server, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST']
-    }
+    },
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 const rooms = {};
@@ -999,7 +1002,10 @@ io.on('connection', (socket) => {
     });
 });
 
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/socket.io')) {
+        return next();
+    }
     const publicIndex = path.join(__dirname, 'public', 'index.html');
     const rootIndex = path.join(__dirname, 'index.html');
     if (fs.existsSync(publicIndex)) {

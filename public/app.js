@@ -161,9 +161,12 @@ const wrongGuessDesc = document.getElementById('wrong-guess-desc');
 const wrongGuessRevealedCardContainer = document.getElementById('wrong-guess-revealed-card-container');
 const btnCloseWrongGuess = document.getElementById('btn-close-wrong-guess');
 
-const modalActionChoice = document.getElementById('modal-action-choice');
+const actionChoiceBar = document.getElementById('action-choice-bar');
 const btnChoiceAgain = document.getElementById('btn-choice-again');
 const btnChoicePass = document.getElementById('btn-choice-pass');
+const dashPlacementPrompt = document.getElementById('dash-placement-prompt');
+const btnConfirmDashPlace = document.getElementById('btn-confirm-dash-place');
+const btnCancelDashPlace = document.getElementById('btn-cancel-dash-place');
 
 const modalGameOver = document.getElementById('modal-game-over');
 const gameOverReason = document.getElementById('game-over-reason');
@@ -171,13 +174,25 @@ const rankingList = document.getElementById('ranking-list');
 const btnRestartGame = document.getElementById('btn-restart-game');
 const btnEndgameLeave = document.getElementById('btn-endgame-leave');
 
+const appContainer = document.getElementById('app-container');
+let isPlacingDash = false;
+let selectedDashSlotIndex = null;
+
 if (localStorage.getItem('davinci_player_name')) {
     inputPlayerName.value = localStorage.getItem('davinci_player_name');
 }
 
 function showScreen(screenId) {
     [screenLobby, screenRoomWaiting, screenGameBoard].forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    const target = document.getElementById(screenId);
+    if (target) target.classList.add('active');
+    if (appContainer) {
+        if (screenId === 'screen-game-board') {
+            appContainer.classList.add('full-width-game');
+        } else {
+            appContainer.classList.remove('full-width-game');
+        }
+    }
 }
 
 socket.on('error_message', (msg) => alert(msg));
@@ -312,9 +327,14 @@ btnCopyCode.addEventListener('click', () => {
     }
 });
 
-btnLeaveRoom.addEventListener('click', () => location.reload());
-btnInGameLeave.addEventListener('click', () => location.reload());
-btnEndgameLeave.addEventListener('click', () => location.reload());
+function leaveCurrentRoom() {
+    socket.emit('leave_room');
+    location.reload();
+}
+
+btnLeaveRoom.addEventListener('click', leaveCurrentRoom);
+btnInGameLeave.addEventListener('click', leaveCurrentRoom);
+btnEndgameLeave.addEventListener('click', leaveCurrentRoom);
 
 btnToggleReady.addEventListener('click', () => socket.emit('toggle_ready'));
 btnStartGame.addEventListener('click', () => socket.emit('start_game'));
@@ -376,11 +396,15 @@ socket.on('room_state', (room) => {
             openDrawnTileRevealModal(room.drawnTile);
         }
 
-        // Action Choice Modal for correct guesser
+        // Floating Action Choice Bar for correct guesser (Non-blocking)
         if (room.turnPhase === 'action_choice' && isMyTurn) {
-            openModal(modalActionChoice);
+            if (!isPlacingDash && actionChoiceBar) {
+                actionChoiceBar.classList.add('active');
+            }
         } else {
-            closeModal(modalActionChoice);
+            if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+            if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
+            isPlacingDash = false;
         }
 
         if (!isMyTurn || room.turnPhase !== 'guessing') {
@@ -428,7 +452,9 @@ window.handleTargetTileClick = function(tileEl, event) {
 
     if (currentRoomState && currentRoomState.turnPhase === 'action_choice') {
         socket.emit('player_action_choice', { choice: 'guess_again' });
-        closeModal(modalActionChoice);
+        if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+        if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
+        isPlacingDash = false;
     }
 
     const targetSocketId = tileEl.getAttribute('data-target-socket');
@@ -471,8 +497,10 @@ function renderRoomWaiting(room) {
         const readyText = p.isBot
             ? `<span class="bot-badge">🤖 BOT (${p.difficulty === 'easy' ? 'Dễ' : 'Khó'})</span>`
             : (pIsHost ? 'Chủ phòng' : (p.ready ? '✓ Đã sẵn sàng' : 'Chưa sẵn sàng'));
-        const removeBotBtn = (isHost && p.isBot)
-            ? `<button class="btn btn-danger-ghost btn-remove-bot" data-botid="${p.socketId}">Xóa Bot</button>`
+        const kickBtn = (isHost && p.socketId !== socket.id)
+            ? (p.isBot
+                ? `<button class="btn btn-danger-ghost btn-remove-bot" data-botid="${p.socketId}"><i class="fa-solid fa-trash"></i> Xóa Bot</button>`
+                : `<button class="btn btn-kick-player" data-socketid="${p.socketId}" title="Mời người chơi ra khỏi phòng"><i class="fa-solid fa-user-xmark"></i> Kích</button>`)
             : '';
 
         return `
@@ -481,7 +509,7 @@ function renderRoomWaiting(room) {
                 <div class="player-avatar"><i class="${avatarIcon}"></i></div>
                 <div class="player-name-display">${p.name} ${p.socketId === socket.id ? '(Bạn)' : ''}</div>
                 <div class="player-ready-status">${readyText}</div>
-                ${removeBotBtn}
+                ${kickBtn}
             </div>
         `;
     }).join('');
@@ -492,7 +520,21 @@ function renderRoomWaiting(room) {
             socket.emit('remove_bot', { botSocketId });
         });
     });
+
+    document.querySelectorAll('.btn-kick-player').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const targetSocketId = e.currentTarget.dataset.socketid;
+            if (confirm('Bạn có chắc chắn muốn mời người chơi này ra khỏi phòng?')) {
+                socket.emit('kick_player', { targetSocketId });
+            }
+        });
+    });
 }
+
+socket.on('kicked_from_room', (data) => {
+    alert(data.message || 'Bạn đã bị Chủ phòng mời ra khỏi phòng!');
+    location.reload();
+});
 
 // RENDER GAME BOARD (POKER 4-CORNER TABLE LAYOUT)
 function renderGameBoard(room) {
@@ -561,31 +603,57 @@ function renderGameBoard(room) {
         myPlayerName.innerText = `${me.name} (Bạn)`;
         myCoinsCount.innerText = me.coins;
 
-        myTilesRack.innerHTML = me.hand.map((tile, idx) => {
-            const tileClass = `tile-card tile-${tile.color} ${tile.isRevealed ? 'revealed' : ''}`;
-            const displayVal = tile.isJoker ? '-' : tile.value;
+        if (isPlacingDash) {
+            let slotsHtml = '';
+            const handLen = me.hand.length;
+            for (let i = 0; i <= handLen; i++) {
+                const isSelected = (selectedDashSlotIndex === i);
+                slotsHtml += `
+                    <button type="button" class="dash-insert-slot ${isSelected ? 'selected' : ''}" data-slot="${i}" onclick="handleDashSlotClick(${i})" title="Chèn lá Dash (-) vào vị trí này">
+                        ${isSelected ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-plus"></i>'}
+                    </button>
+                `;
+                if (i < handLen) {
+                    const tile = me.hand[i];
+                    const tileClass = `tile-card tile-${tile.color} ${tile.isRevealed ? 'revealed' : ''}`;
+                    const displayVal = tile.isJoker ? '-' : tile.value;
+                    slotsHtml += `
+                        <div class="tile-dash-wrapper">
+                            <div class="${tileClass}">
+                                <span class="tile-value">${displayVal}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            myTilesRack.innerHTML = slotsHtml;
+        } else {
+            myTilesRack.innerHTML = me.hand.map((tile, idx) => {
+                const tileClass = `tile-card tile-${tile.color} ${tile.isRevealed ? 'revealed' : ''}`;
+                const displayVal = tile.isJoker ? '-' : tile.value;
 
-            let shiftControls = '';
-            if (tile.isJoker && room.state === 'prep_phase') {
-                const canLeft = idx > 0;
-                const canRight = idx < me.hand.length - 1;
-                shiftControls = `
-                    <div class="dash-shift-btns">
-                        ${canLeft ? `<button class="btn-shift-dash" title="Dời sang trái" onclick="moveDashTile(${idx}, ${idx - 1}, event)">◀</button>` : ''}
-                        ${canRight ? `<button class="btn-shift-dash" title="Dời sang phải" onclick="moveDashTile(${idx}, ${idx + 1}, event)">▶</button>` : ''}
+                let shiftControls = '';
+                if (tile.isJoker && room.state === 'prep_phase') {
+                    const canLeft = idx > 0;
+                    const canRight = idx < me.hand.length - 1;
+                    shiftControls = `
+                        <div class="dash-shift-btns">
+                            ${canLeft ? `<button class="btn-shift-dash" title="Dời sang trái" onclick="moveDashTile(${idx}, ${idx - 1}, event)">◀</button>` : ''}
+                            ${canRight ? `<button class="btn-shift-dash" title="Dời sang phải" onclick="moveDashTile(${idx}, ${idx + 1}, event)">▶</button>` : ''}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tile-dash-wrapper">
+                        ${shiftControls}
+                        <div class="${tileClass}">
+                            <span class="tile-value">${displayVal}</span>
+                        </div>
                     </div>
                 `;
-            }
-
-            return `
-                <div class="tile-dash-wrapper">
-                    ${shiftControls}
-                    <div class="${tileClass}">
-                        <span class="tile-value">${displayVal}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
+            }).join('');
+        }
 
         // Render MY DRAWN TILE SLOT if I have a drawnTile currently
         if (isMyTurn && room.drawnTile) {
@@ -733,7 +801,7 @@ function openGuessDock(targetSocketId, targetTileIndex, color, oppName, tileEl) 
     if (btnConfirmGuess) btnConfirmGuess.disabled = true;
 
     closeModal(modalDrawnReveal);
-    closeModal(modalActionChoice);
+    if (actionChoiceBar) actionChoiceBar.classList.remove('active');
 
     if (guessDock) guessDock.classList.add('active');
 }
@@ -779,16 +847,70 @@ if (btnFinishPrep) {
     btnFinishPrep.addEventListener('click', () => socket.emit('finish_prep'));
 }
 
-// ACTION CHOICE MODAL
+// DASH PLACEMENT HANDLERS
+window.handleDashSlotClick = function(slotIdx) {
+    selectedDashSlotIndex = slotIdx;
+    document.querySelectorAll('.dash-insert-slot').forEach(btn => {
+        const s = parseInt(btn.getAttribute('data-slot'));
+        if (s === slotIdx) {
+            btn.classList.add('selected');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        } else {
+            btn.classList.remove('selected');
+            btn.innerHTML = '<i class="fa-solid fa-plus"></i>';
+        }
+    });
+    if (btnConfirmDashPlace) {
+        btnConfirmDashPlace.disabled = false;
+    }
+};
+
+window.startDashPlacementMode = function(room) {
+    isPlacingDash = true;
+    selectedDashSlotIndex = null;
+    if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+    if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'block';
+    if (btnConfirmDashPlace) btnConfirmDashPlace.disabled = true;
+    renderGameBoard(room);
+};
+
+// ACTION CHOICE FLOATING BAR
 btnChoiceAgain.addEventListener('click', () => {
     socket.emit('player_action_choice', { choice: 'guess_again' });
-    closeModal(modalActionChoice);
+    if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+    isPlacingDash = false;
+    if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
 });
 
 btnChoicePass.addEventListener('click', () => {
-    socket.emit('player_action_choice', { choice: 'pass_turn' });
-    closeModal(modalActionChoice);
+    if (currentRoomState && currentRoomState.drawnTile && currentRoomState.drawnTile.isJoker) {
+        // Active player is keeping drawn Dash: allow positioning on rack
+        startDashPlacementMode(currentRoomState);
+    } else {
+        socket.emit('player_action_choice', { choice: 'pass_turn' });
+        if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+        isPlacingDash = false;
+        if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
+    }
 });
+
+if (btnConfirmDashPlace) {
+    btnConfirmDashPlace.addEventListener('click', () => {
+        if (selectedDashSlotIndex === null) return;
+        socket.emit('player_action_choice', { choice: 'pass_turn', insertIndex: selectedDashSlotIndex });
+        isPlacingDash = false;
+        if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
+    });
+}
+
+if (btnCancelDashPlace) {
+    btnCancelDashPlace.addEventListener('click', () => {
+        isPlacingDash = false;
+        if (dashPlacementPrompt) dashPlacementPrompt.style.display = 'none';
+        if (actionChoiceBar) actionChoiceBar.classList.add('active');
+        if (currentRoomState) renderGameBoard(currentRoomState);
+    });
+}
 
 // GAME OVER MODAL
 function renderGameOverModal(room) {
@@ -811,4 +933,7 @@ function renderGameOverModal(room) {
 
 function openModal(modalEl) { if (modalEl) modalEl.classList.add('active'); }
 function closeModal(modalEl) { if (modalEl) modalEl.classList.remove('active'); }
-function closeAllModals() { [modalDrawnReveal, modalWrongGuess, modalActionChoice, modalGameOver].forEach(m => closeModal(m)); }
+function closeAllModals() {
+    [modalDrawnReveal, modalWrongGuess, modalGameOver].forEach(m => closeModal(m));
+    if (actionChoiceBar) actionChoiceBar.classList.remove('active');
+}

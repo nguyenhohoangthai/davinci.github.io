@@ -303,6 +303,48 @@ io.on('connection', (socket) => {
         if (idx !== -1) {
             const removed = room.players.splice(idx, 1)[0];
             logActivity(room, `${removed.name} đã bị xóa khỏi phòng.`);
+            if (cleanupRoomIfEmptyOrOnlyBots(room)) return;
+            broadcastRoomState(room);
+            broadcastPublicRooms();
+        }
+    });
+
+    socket.on('kick_player', ({ targetSocketId }) => {
+        const room = rooms[socket.roomId];
+        if (!room || room.hostSocketId !== socket.id) return;
+        if (!targetSocketId || targetSocketId === socket.id) return;
+
+        const targetIndex = room.players.findIndex(p => p.socketId === targetSocketId);
+        if (targetIndex === -1) return;
+
+        const kicked = room.players.splice(targetIndex, 1)[0];
+        logActivity(room, `👢 Chủ phòng đã xóa ${kicked.name} khỏi phòng.`);
+
+        if (!kicked.isBot) {
+            io.to(targetSocketId).emit('kicked_from_room', {
+                message: 'Bạn đã bị Chủ phòng mời ra khỏi phòng.'
+            });
+            const targetSocket = io.sockets.sockets.get(targetSocketId);
+            if (targetSocket) {
+                targetSocket.leave(room.roomId);
+                targetSocket.roomId = null;
+            }
+        }
+
+        if (cleanupRoomIfEmptyOrOnlyBots(room)) return;
+
+        if (room.state === 'in_game' || room.state === 'prep_phase' || room.state === 'initial_draft' || room.state === 'shuffling') {
+            const remainingActive = room.players.filter(p => !p.isEliminated);
+            if (room.players.length < 2 || remainingActive.length <= 1) {
+                triggerGameOver(room, `Số người chơi còn lại ít hơn 2.`);
+            } else {
+                if (room.currentTurnIndex >= room.players.length) {
+                    room.currentTurnIndex = 0;
+                }
+                broadcastRoomState(room);
+                triggerBotTurnIfNeeded(room);
+            }
+        } else {
             broadcastRoomState(room);
             broadcastPublicRooms();
         }
@@ -337,7 +379,8 @@ io.on('connection', (socket) => {
         logActivity(room, `🃏 Đang xào bài và trải 26 quân bài úp lên bàn cờ...`);
         broadcastRoomState(room);
 
-        setTimeout(() => {
+        if (room.startTimer) clearTimeout(room.startTimer);
+        room.startTimer = setTimeout(() => {
             if (!rooms[room.roomId]) return;
 
             logActivity(room, `=== BẮT ĐẦU VÁN ĐẤU ===`);
@@ -857,7 +900,8 @@ io.on('connection', (socket) => {
                             const drawn = room.drawnTile;
                             room.drawnTile = null;
                             if (drawn.isJoker) {
-                                activePlayer.hand.push(drawn);
+                                const randIdx = Math.floor(Math.random() * (activePlayer.hand.length + 1));
+                                activePlayer.hand.splice(randIdx, 0, drawn);
                             } else {
                                 activePlayer.hand = autoInsertNonJoker(activePlayer.hand, drawn);
                             }
@@ -872,7 +916,7 @@ io.on('connection', (socket) => {
         }
     }
 
-    socket.on('player_action_choice', ({ choice }) => {
+    socket.on('player_action_choice', ({ choice, insertIndex }) => {
         const room = rooms[socket.roomId];
         if (!room || room.state !== 'in_game' || room.turnPhase !== 'action_choice') return;
 
@@ -890,7 +934,12 @@ io.on('connection', (socket) => {
                 const drawn = room.drawnTile;
                 room.drawnTile = null;
                 if (drawn.isJoker) {
-                    activePlayer.hand.push(drawn);
+                    const parsedIdx = parseInt(insertIndex);
+                    const targetIdx = (!isNaN(parsedIdx) && parsedIdx >= 0 && parsedIdx <= activePlayer.hand.length)
+                        ? parsedIdx
+                        : activePlayer.hand.length;
+                    activePlayer.hand.splice(targetIdx, 0, drawn);
+                    logActivity(room, `✨ ${activePlayer.name} đã cài lá Dash (-) vào vị trí số #${targetIdx + 1} trong hàng bài.`);
                 } else {
                     activePlayer.hand = autoInsertNonJoker(activePlayer.hand, drawn);
                 }
@@ -960,45 +1009,73 @@ io.on('connection', (socket) => {
         broadcastPublicRooms();
     });
 
-    socket.on('disconnect', () => {
-        console.log(`[Socket Disconnected] ID: ${socket.id}`);
+    function cleanupRoomIfEmptyOrOnlyBots(room) {
+        if (!room) return true;
+        const remainingHumans = room.players.filter(p => !p.isBot);
+        if (remainingHumans.length === 0) {
+            if (room.prepInterval) clearInterval(room.prepInterval);
+            if (room.botTimer) clearTimeout(room.botTimer);
+            if (room.startTimer) clearTimeout(room.startTimer);
+            delete rooms[room.roomId];
+            broadcastPublicRooms();
+            return true;
+        }
+        return false;
+    }
+
+    function handlePlayerExit(socket) {
         const code = socket.roomId;
         if (!code || !rooms[code]) return;
 
         const room = rooms[code];
         const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
-        
+
         if (playerIndex !== -1) {
             const disconnectedPlayer = room.players[playerIndex];
             logActivity(room, `⚠️ ${disconnectedPlayer.name} đã rời khỏi phòng.`);
 
             room.players.splice(playerIndex, 1);
+            socket.leave(code);
+            socket.roomId = null;
 
-            if (room.players.length === 0) {
-                delete rooms[code];
-                broadcastPublicRooms();
+            if (cleanupRoomIfEmptyOrOnlyBots(room)) {
                 return;
             }
 
             if (room.hostSocketId === socket.id) {
-                room.hostSocketId = room.players[0].socketId;
-                logActivity(room, `👑 ${room.players[0].name} trở thành Chủ phòng mới.`);
+                const nextHost = room.players.find(p => !p.isBot) || room.players[0];
+                room.hostSocketId = nextHost.socketId;
+                logActivity(room, `👑 ${nextHost.name} trở thành Chủ phòng mới.`);
             }
 
-            if (room.state === 'in_game' || room.state === 'joker_setup' || room.state === 'shuffling') {
-                if (room.players.length < 2) {
+            if (room.state === 'in_game' || room.state === 'prep_phase' || room.state === 'initial_draft' || room.state === 'shuffling') {
+                const remainingActive = room.players.filter(p => !p.isEliminated);
+                if (room.players.length < 2 || remainingActive.length <= 1) {
                     triggerGameOver(room, `Số người chơi còn lại ít hơn 2.`);
                 } else {
                     if (room.currentTurnIndex >= room.players.length) {
                         room.currentTurnIndex = 0;
                     }
+                    if (room.draftTurnIndex >= room.players.length) {
+                        room.draftTurnIndex = 0;
+                    }
                     broadcastRoomState(room);
+                    triggerBotTurnIfNeeded(room);
                 }
             } else {
                 broadcastRoomState(room);
                 broadcastPublicRooms();
             }
         }
+    }
+
+    socket.on('leave_room', () => {
+        handlePlayerExit(socket);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`[Socket Disconnected] ID: ${socket.id}`);
+        handlePlayerExit(socket);
     });
 });
 

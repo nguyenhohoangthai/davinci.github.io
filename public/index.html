@@ -46,12 +46,53 @@
                     <p>Trò chơi suy luận logic huyền thoại. Đoán số, tích lũy <strong>Xu</strong> và đánh bại đối thủ!</p>
                     
                     <div class="rules-summary-box">
-                        <h4><i class="fa-solid fa-star text-gold"></i> Luật Chơi Nâng Cao:</h4>
-                        <ul>
-                            <li><i class="fa-solid fa-coins text-gold"></i> Đoán <b>ĐÚNG 1 lá</b> nhận ngay <b>+1 Xu (+1 Điểm)</b>.</li>
-                            <li><i class="fa-solid fa-skull"></i> Khi <b>1 người lật hết mật mã</b>, game KẾT THÚC. Người có <b>nhiều Xu nhất</b> sẽ THẮNG!</li>
-                            <li><i class="fa-solid fa-mask"></i> <b>Lá bài Dash (-):</b> Được tự do chọn vị trí đặt bài để bẫy đối thủ!</li>
-                        </ul>
+                        <div class="rules-header">
+                            <h4><i class="fa-solid fa-book-open text-gold"></i> BỘ LUẬT CHƠI MẬT MÃ CHI TIẾT</h4>
+                            <span class="rules-badge">Chuẩn Quốc Tế</span>
+                        </div>
+
+                        <!-- PHẦN 1: BỘ BÀI & QUY TẮC XẾP -->
+                        <div class="rules-section">
+                            <h5><i class="fa-solid fa-layer-group text-gold"></i> 1. Bộ Bài & Quy Tắc Xếp Mật Mã</h5>
+                            <ul>
+                                <li>Bộ bài gồm <strong>26 quân</strong>: 13 quân Đen (0–11 và lá Dash <code>-</code>) và 13 quân Trắng (0–11 và lá Dash <code>-</code>).</li>
+                                <li><strong>Xếp tăng dần từ Trái sang Phải:</strong> Số nhỏ hơn luôn nằm ở bên trái, số lớn hơn nằm ở bên phải.</li>
+                                <li><strong>Nếu cùng số:</strong> Quân <strong>ĐEN</strong> luôn đứng trước (bên trái) quân <strong>TRẮNG</strong> (Ví dụ: <code>3 Đen</code> đứng trước <code>3 Trắng</code>).</li>
+                                <li><strong>Lá Dash (-):</strong> Có thể đặt ở <strong>bất kỳ vị trí nào</strong> (đầu, giữa hoặc cuối) để bẫy và đánh lạc hướng đối thủ. Sau khi đặt sẽ cố định vị trí.</li>
+                            </ul>
+                        </div>
+
+                        <!-- PHẦN 2: LƯỢT CHƠI & ĐOÁN BÀI -->
+                        <div class="rules-section">
+                            <h5><i class="fa-solid fa-gamepad text-emerald"></i> 2. Diễn Biến Mỗi Lượt Chơi</h5>
+                            <ul>
+                                <li><strong>Bước 1 - Bốc bài:</strong> Đầu lượt, bạn bốc 1 quân úp (Trắng hoặc Đen) trên bàn. Quân này tạm để riêng, chỉ một mình bạn biết giá trị.</li>
+                                <li><strong>Bước 2 - Đoán bài đối thủ:</strong> Chọn 1 quân bài đang úp của một đối thủ bất kỳ và dự đoán số (từ 0 đến 11, hoặc Dash <code>-</code>).</li>
+                                <li><strong>Nếu đoán ĐÚNG:</strong>
+                                    <ul class="sub-rules">
+                                        <li>Quân bài đó của đối thủ bị lật ngửa công khai. Bạn nhận ngay <strong class="text-gold">+1 Xu (+1 Điểm)</strong>.</li>
+                                        <li>Bạn được lựa chọn: <strong>Đoán Tiếp</strong> (chọn đoán thêm 1 lá khác để kiếm thêm Xu) HOẶC <strong>Dừng Lượt</strong> (bảo toàn bí mật lá vừa bốc).</li>
+                                        <li>Nếu chọn dừng lượt và lá vừa bốc là <strong>Dash (-)</strong>, bạn sẽ được tự chọn vị trí chèn quân bài này vào hàng bài của mình!</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Nếu đoán SAI:</strong>
+                                    <ul class="sub-rules">
+                                        <li>Quân bài bạn vừa bốc sẽ bị <strong>ép lật ngửa công khai</strong> và xếp vào hàng bài của bạn theo đúng thứ tự.</li>
+                                        <li>Lượt chơi kết thúc ngay lập tức, chuyển sang người kế tiếp.</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- PHẦN 3: KẾT THÚC & THẮNG CUỘC -->
+                        <div class="rules-section">
+                            <h5><i class="fa-solid fa-trophy text-gold"></i> 3. Điều Kiện Thắng Cuộc</h5>
+                            <ul>
+                                <li>Người chơi bị lật hết toàn bộ mật mã sẽ bị loại khỏi ván đấu.</li>
+                                <li>Ván đấu kết thúc khi có người chơi bị lật hết mật mã hoặc khi kho bài trên bàn đã cạn kiệt.</li>
+                                <li><strong>Người chiến thắng:</strong> Là người tích lũy được <strong>nhiều Xu (Điểm) nhất</strong> nhờ suy luận sắc bén và chuẩn xác!</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -215,6 +256,20 @@
 
                 <!-- BOTTOM SEAT (SELF / MY RACK) -->
                 <div id="seat-bottom" class="table-seat seat-bottom">
+                    <!-- DASH CARD PLACEMENT PROMPT (ACTIVE WHEN KEEPING DRAWN DASH) -->
+                    <div id="dash-placement-prompt" class="dash-placement-prompt" style="display: none;">
+                        <div class="dash-prompt-inner">
+                            <div class="dash-prompt-badge"><i class="fa-solid fa-arrows-left-right-to-line text-gold"></i> ĐẶT LÁ DASH (-)</div>
+                            <span class="dash-prompt-text">Nhấp vào vị trí <strong>[+]</strong> trên khay bài để chèn quân Dash (-):</span>
+                            <div class="dash-prompt-actions">
+                                <button id="btn-cancel-dash-place" class="btn btn-secondary btn-sm">Hủy</button>
+                                <button id="btn-confirm-dash-place" class="btn btn-primary btn-sm btn-glow" disabled>
+                                    <i class="fa-solid fa-check"></i> Xác Nhận Đặt Vị Trí
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="my-rack-header">
                         <div class="my-player-info">
                             <i class="fa-solid fa-user-ninja text-gold"></i>
@@ -341,22 +396,25 @@
         </div>
     </div>
 
-    <!-- MODAL: ACTION CHOICE AFTER CORRECT GUESS -->
-    <div id="modal-action-choice" class="modal-backdrop">
-        <div class="modal-content glass-card choice-modal">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-trophy text-gold"></i> ĐOÁN ĐÚNG RỒI! (+1 XU)</h3>
-            </div>
-            <div class="modal-body">
-                <p>Bạn nhận được <strong>+1 Xu</strong>. Bạn muốn tiếp tục thừa thắng xông lên hay dừng lại bảo toàn bí mật?</p>
-                <div class="choice-buttons">
-                    <button id="btn-choice-again" class="btn btn-primary btn-lg">
-                        <i class="fa-solid fa-bullseye"></i> ĐOÁN TIẾP (+1 Xu nữa nếu đúng)
-                    </button>
-                    <button id="btn-choice-pass" class="btn btn-secondary btn-lg">
-                        <i class="fa-solid fa-shield"></i> DỪNG LƯỢT (Giữ an toàn bài)
-                    </button>
+    <!-- FLOATING ACTION CHOICE BAR (NON-BLOCKING, NO BACKDROP, OPPONENTS' TILES 100% VISIBLE) -->
+    <div id="action-choice-bar" class="action-choice-bar">
+        <div class="action-choice-inner glass-card">
+            <div class="choice-info-badge">
+                <div class="choice-icon-wrap">
+                    <i class="fa-solid fa-trophy text-gold"></i>
                 </div>
+                <div class="choice-texts">
+                    <div class="choice-title">ĐOÁN ĐÚNG! <span class="choice-coin-bonus">+1 XU</span></div>
+                    <div class="choice-subtitle">Quan sát bài đối thủ và nhấp chọn đoán tiếp, hoặc dừng lại bảo toàn:</div>
+                </div>
+            </div>
+            <div class="choice-buttons">
+                <button id="btn-choice-again" class="btn btn-primary btn-md btn-glow pulse-glow">
+                    <i class="fa-solid fa-bullseye"></i> ĐOÁN TIẾP
+                </button>
+                <button id="btn-choice-pass" class="btn btn-secondary btn-md">
+                    <i class="fa-solid fa-shield"></i> DỪNG LƯỢT (Bảo toàn)
+                </button>
             </div>
         </div>
     </div>
